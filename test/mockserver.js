@@ -13,9 +13,11 @@ const verbose = process.env.DEBUG === 'true' || false;
 /**
  * Processes request
  */
-function processRequest(url, method) {
+function processRequest(url, method, cb) {
   req.url = url;
   req.method = method;
+  if (cb != null) res.onEnd = cb;
+  
   mockserver(mocksDirectory, verbose)(req, res);
 }
 
@@ -57,7 +59,10 @@ describe('mockserver', function() {
       },
       end: function(body) {
         this.body = body;
+        this.onEnd(this);
+        
       },
+      onEnd: function() {}
     };
 
     req = {
@@ -73,118 +78,165 @@ describe('mockserver', function() {
   });
 
   describe('mockserver()', function() {
-    it('should return a valid response', function() {
-      processRequest('/test', 'GET');
-
-      assert.equal(res.body, 'Welcome!');
-      assert.equal(res.status, 200);
-      assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
-    });
-
-    it('should return 404 if the mock does not exist', function() {
-      processRequest('/not-there', 'GET');
-
-      assert.equal(res.status, 404);
-      assert.equal(res.body, 'Not Mocked');
-    });
-
-    it('should be able to handle trailing slashes without changing the name of the mockfile', function() {
-      processRequest('/test/', 'GET');
-
-      assert.equal(res.status, 200);
-      assert.equal(res.body, 'Welcome!');
-      assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
-    });
-
-    it('should be able to handle multiple headers', function() {
-      processRequest('/multiple-headers/', 'GET');
-
-      assert.equal(res.status, 200);
-      assert.equal(
-        JSON.stringify(res.headers),
-        '{"Content-Type":"text/xml; charset=utf-8","Cache-Control":"public, max-age=300"}'
-      );
-    });
-
-    it('should combine the identical headers names', function() {
-      processRequest('/multiple-headers-same-name/', 'GET');
+    it('should return a valid response', function(done) {
       
-      assert.equal(res.headers['Set-Cookie'].length, 3);
-    })
+      processRequest('/test', 'GET', function(res) {
+        assert.equal(res.body, 'Welcome!');
+        assert.equal(res.status, 200);
+        assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
+        done();
+      });
 
-    it('should be able to handle status codes different than 200', function() {
-      processRequest('/return-204', 'GET');
 
-      assert.equal(res.status, 204);
     });
 
-    it('should be able to handle HTTP methods other than GET', function() {
-      processRequest('/return-200', 'POST');
-
-      assert.equal(res.status, 200);
+    it('should return 404 if the mock does not exist', function(done) {
+      processRequest('/not-there', 'GET', function(res) {
+        assert.equal(res.status, 404);
+        assert.equal(res.body, 'Not Mocked');
+        done();
+      });
     });
 
-    it('should be able to handle empty bodies', function() {
-      processRequest('/return-empty-body', 'GET');
+    it('should be able to handle trailing slashes without changing the name of the mockfile', function(done) {
+     processRequest('/test/', 'GET', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(res.body, 'Welcome!');
+        assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
+        done();
+      });
 
-      assert.equal(res.status, 204);
-      assert.equal(res.body, '');
     });
 
-    it('should be able to correctly map /', function() {
-      processRequest('/', 'GET');
+    it('should be able to handle multiple headers', function(done) {
+      processRequest('/multiple-headers/', 'GET', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(
+          JSON.stringify(res.headers),
+          '{"Content-Type":"text/xml; charset=utf-8","Cache-Control":"public, max-age=300"}'
+        );  
+        done();
+      });
 
-      assert.equal(res.body, 'homepage');
+      
     });
 
-    it('should be able to map multi-level urls', function() {
-      processRequest('/test1/test2', 'GET');
-
-      assert.equal(res.body, 'multi-level url');
+    it('should combine the identical headers names', function(done) {
+      processRequest('/multiple-headers-same-name/', 'GET',function(res) {
+        assert.equal(res.headers['Set-Cookie'].length, 3);        
+        done();
+      });
+      
     });
 
-    it('should be able to handle GET parameters', function() {
-      processRequest('/test?a=b', 'GET');
+    it('should be able to handle status codes different than 200', function(done) {
+      processRequest('/return-204', 'GET',function(res) {
+        assert.equal(res.status, 204);  
+        done();
+      });
 
-      assert.equal(res.status, 200);
+      
     });
 
-    it('should default to GET.mock if no matching parameter file is found', function() {
-      processRequest('/test?a=c', 'GET');
-
-      assert.equal(res.status, 200);
+    it('should be able to handle HTTP methods other than GET', function(done) {
+      processRequest('/return-200', 'POST',function(res) {
+        assert.equal(res.status, 200);        
+        done();
+      });
     });
 
-    it('should be able track custom headers', function() {
+    it('should be able to handle empty bodies', function(done) {
+      processRequest('/return-empty-body', 'GET', function(res) {
+        assert.equal(res.status, 204);
+        assert.equal(res.body, '');        
+        done();
+      });
+      
+    });
+
+    it('should be able to correctly map /', function(done) {
+      
+      processRequest('/', 'GET', function(res){
+        assert.equal(res.body, 'homepage');        
+        done();
+      });
+    });
+
+    it('should be able to map multi-level urls', function(done) {
+    
+      processRequest('/test1/test2', 'GET', function(res){
+        assert.equal(res.body, 'multi-level url');  
+        done();
+      });
+    });
+
+    it('should be able to handle GET parameters', function(done) {
+      processRequest('/test?a=b', 'GET',  function(res) {
+        assert.equal(res.status, 200);        
+        done();
+      });
+      
+    });
+
+    it('should default to GET.mock if no matching parameter file is found', function(done) {
+      processRequest('/test?a=c', 'GET', function(res) {
+        assert.equal(res.status, 200);  
+        done();
+      });
+
+    });
+
+    it('should be able track custom headers, not authorized', function(done) {
       mockserver.headers = ['authorization'];
 
-      processRequest('/request-headers', 'GET');
-      assert.equal(res.status, 401);
-      assert.equal(res.body, 'not authorized');
+      processRequest('/request-headers', 'GET', function(res) {
+        assert.equal(res.status, 401);
+        assert.equal(res.body, 'not authorized');
+        done();
+      });
 
+    });
+
+    it('should be able track custom headers, authorized', function(done) {  
+      mockserver.headers = ['authorization'];
       req.headers['authorization'] = '1234';
-      processRequest('/request-headers', 'GET');
-      assert.equal(res.status, 200);
-      assert.equal(res.body, 'authorized');
+      processRequest('/request-headers', 'GET', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(res.body, 'authorized');
+        done();
+      });
+   
 
+    });
+   
+    it('should be able track custom headers, admin authorized', function(done) {
+      mockserver.headers = ['authorization'];
       req.headers['authorization'] = '5678';
-      processRequest('/request-headers', 'GET');
-      assert.equal(res.status, 200);
-      assert.equal(res.body, 'admin authorized');
+      processRequest('/request-headers', 'GET', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(res.body, 'admin authorized');
+        done();
+      });
     });
 
-    it('should attempt to fall back to a base method if a custom header is not found in a file', function() {
+    it('should attempt to fall back to a base method if a custom header is not found in a file, not authorized', function(done) {
       mockserver.headers = ['authorization'];
-
       req.headers['authorization'] = 'invalid';
-      processRequest('/request-headers', 'GET');
-      assert.equal(res.status, 401);
-      assert.equal(res.body, 'not authorized');
+      processRequest('/request-headers', 'GET', function(res) {
+        assert.equal(res.status, 401);
+        assert.equal(res.body, 'not authorized');
+        done();
+      });
 
+    });
+    it('should attempt to fall back to a base method if a custom header is not found in a file, not mocked', function(done) {
+      mockserver.headers = ['authorization'];
       req.headers['authorization'] = 'invalid';
-      processRequest('/request-headers', 'POST');
-      assert.equal(res.status, 404);
-      assert.equal(res.body, 'Not Mocked');
+      processRequest('/request-headers', 'POST', function(res) {
+        assert.equal(res.status, 404);
+        assert.equal(res.body, 'Not Mocked');
+        done();
+      });
     });
 
     it('should look for alternate combinations of headers if a custom header is not found', function() {
