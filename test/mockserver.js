@@ -121,34 +121,20 @@ describe('mockserver', function() {
       
     });
 
-<<<<<<< HEAD
     it('should combine the identical headers names', function(done) {
       processRequest('/multiple-headers-same-name/', 'GET',function(res) {
         assert.equal(res.headers['Set-Cookie'].length, 3);        
         done();
       });
-      
-=======
-    it('should combine the identical headers names', function() {
-      processRequest('/multiple-headers-same-name/', 'GET');
-
-      assert.equal(res.headers['Set-Cookie'].length, 3);
-    })
-
-    it('should be able to handle status codes different than 200', function() {
-      processRequest('/return-204', 'GET');
-
-      assert.equal(res.status, 204);
->>>>>>> 9b648a5618bc0b100e0ae3fd4805c740594cdba8
     });
+      
+  
 
     it('should be able to handle status codes different than 200', function(done) {
       processRequest('/return-204', 'GET',function(res) {
         assert.equal(res.status, 204);  
         done();
       });
-
-      
     });
 
     it('should be able to handle HTTP methods other than GET', function(done) {
@@ -510,6 +496,12 @@ describe('mockserver', function() {
         assert.equal(res.status, 200);
       });
 
+      it('should handle a file with wildcards as query param values', function() {
+        processRequest('/wildcard-params?foo=bar&not-exact=baz&more=andmore', 'GET');
+
+        assert.equal(res.status, 200);
+      });
+
       it('should prefer exact matches over wildcard matches', function () {
         processRequest('/wildcard-params?foo=bar&buz=bak', 'GET');
 
@@ -524,7 +516,7 @@ describe('mockserver', function() {
       });
 
       it('should not handle requests with extra params in the query string', function() {
-        processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'GET');
+        processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'POST');
 
         assert.equal(res.status, 404);
       });
