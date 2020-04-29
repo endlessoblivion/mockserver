@@ -121,12 +121,25 @@ describe('mockserver', function() {
       
     });
 
+<<<<<<< HEAD
     it('should combine the identical headers names', function(done) {
       processRequest('/multiple-headers-same-name/', 'GET',function(res) {
         assert.equal(res.headers['Set-Cookie'].length, 3);        
         done();
       });
       
+=======
+    it('should combine the identical headers names', function() {
+      processRequest('/multiple-headers-same-name/', 'GET');
+
+      assert.equal(res.headers['Set-Cookie'].length, 3);
+    })
+
+    it('should be able to handle status codes different than 200', function() {
+      processRequest('/return-204', 'GET');
+
+      assert.equal(res.status, 204);
+>>>>>>> 9b648a5618bc0b100e0ae3fd4805c740594cdba8
     });
 
     it('should be able to handle status codes different than 200', function(done) {
@@ -483,6 +496,86 @@ describe('mockserver', function() {
         assert.equal(res.status, 404);
       });
     });
+
+    describe('query string parameters', function() {
+      it('should be able to handle GET parameters', function() {
+        processRequest('/test?a=b', 'GET');
+
+        assert.equal(res.status, 200);
+      });
+
+      it('should handle a file with wildcards as query params', function() {
+        processRequest('/wildcard-params?foo=bar&buz=baz', 'GET');
+
+        assert.equal(res.status, 200);
+      });
+
+      it('should prefer exact matches over wildcard matches', function () {
+        processRequest('/wildcard-params?foo=bar&buz=bak', 'GET');
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body, 'exact match');
+      })
+
+      it('should handle a request regardless of the order of the params in the query string', function() {
+        processRequest('/wildcard-params?buz=baz&foo=bar', 'GET');
+
+        assert.equal(res.status, 200);
+      });
+
+      it('should not handle requests with extra params in the query string', function() {
+        processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'GET');
+
+        assert.equal(res.status, 404);
+      });
+
+      it('should default to GET.mock if no matching parameter file is found', function() {
+        processRequest('/test?a=c', 'GET');
+
+        assert.equal(res.status, 200);
+      });
+
+      it('should be able to include POST bodies and query params', function(done) {
+        const req = new MockReq({
+          method: 'POST',
+          url: '/return-200?a=b',
+          headers: {
+            Accept: 'text/plain'
+          }
+        });
+        req.write('Hello=123');
+        req.end();
+
+        mockserver(mocksDirectory, verbose)(req, res);
+
+        req.on('end', function() {
+          assert.equal(res.body, 'Hella');
+          assert.equal(res.status, 200);
+          done();
+        });
+      });
+
+      it('should be able to include POST bodies and query params with wildcards', function(done) {
+        const req = new MockReq({
+          method: 'POST',
+          url: '/return-200?c=d',
+          headers: {
+            Accept: 'text/plain'
+          }
+        });
+        req.write('Hello=456');
+        req.end();
+
+        mockserver(mocksDirectory, verbose)(req, res);
+
+        req.on('end', function() {
+          assert.equal(res.body, 'Hello!!!');
+          assert.equal(res.status, 200);
+          done();
+        });
+      });
+    });
+
     describe('.getResponseDelay', function() {
       it('should return a value greater than zero when valid', function() {
         const ownValueHeaders = [
