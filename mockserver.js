@@ -392,9 +392,15 @@ const mockserver = {
           req
         );
         const delay = getResponseDelay(mock.headers);
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay);
-        res.writeHead(mock.status, mock.headers);
-        return res.end(mock.body);
+        if (delay > 0) {
+          setTimeout(function() {
+            res.writeHead(mock.status, mock.headers);
+            res.end(mock.body);
+          }, delay);
+        } else {
+          res.writeHead(mock.status, mock.headers);
+          return res.end(mock.body);
+        }
       } else {
         res.writeHead(404);
         res.end('Not Mocked');
