@@ -311,6 +311,11 @@ function getMockedContent(path, prefix, body, query) {
 }
 
 function testForQuery(path, prefix, body, query, allowWildcards) {
+  
+  if (!fs.existsSync(join(mockserver.directory, path))) {
+    return handleMatch(path, join(mockserver.directory, path), false);
+  }
+
   // Find all files in the directory
   return fs
     .readdirSync(join(mockserver.directory, path))

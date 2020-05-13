@@ -481,6 +481,13 @@ describe('mockserver', function() {
 
         assert.equal(res.status, 404);
       });
+      
+      it('works even with wildcard POST __ and query parameters', function() {
+        processRequest('/wildcard/123?myquery=yes', 'POST');
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body, 'this also works\n');
+      });
     });
 
     describe('query string parameters', function() {
