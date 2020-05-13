@@ -514,18 +514,28 @@ describe('mockserver', function() {
 
         assert.equal(res.status, 200);
         assert.equal(res.body, 'exact match');
-      })
+      });
 
       it('should handle a request regardless of the order of the params in the query string', function() {
         processRequest('/wildcard-params?buz=baz&foo=bar', 'GET');
-
         assert.equal(res.status, 200);
       });
 
-      it('should not handle requests with extra params in the query string', function() {
+      it('should not handle requests with extra params in the query string, if no slugs are configured', function() {
         processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'POST');
-
         assert.equal(res.status, 404);
+      });
+
+      it('should handle extra params name and values if slug is configured', function() {
+        processRequest('/wildcard-params/extra/?foo=bar&myextra=data', 'GET');
+        assert.equal(res.body, 'foo=bar&__=__');
+        assert.equal(res.status, 200);
+      });
+
+      it('should handle extra params value if slug is configured', function() {
+        processRequest('/wildcard-params?foo=bar&buz=data', 'GET');
+        assert.equal(res.body, 'foo=bar&buz=__');
+        assert.equal(res.status, 200);
       });
 
       it('should default to GET.mock if no matching parameter file is found', function() {

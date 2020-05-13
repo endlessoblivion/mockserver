@@ -343,17 +343,23 @@ function testForQuery(path, prefix, body, query, allowWildcards) {
         if (!isMatch) {
           continue;
         }
-        if (isMatch = possibleFileParamMap[key] === paramMap[key])
+        if (possibleFileParamMap[key] === paramMap[key]) {
           //The parameter matched the value exactly
+          isMatch = true;
           continue;
-        else if (allowWildcards) {
+        } else if (allowWildcards) {
 
           if (key in possibleFileParamMap) {
             //The parameter was configured to accept any value
             isMatch = possibleFileParamMap[key] === '__';
           } else {
             //The mock was configured to accept any parameter with any value
-            isMatch = possibleFileParamMap['__'] === '__'
+            if (possibleFileParamMap['__'] === '__') {
+              continue;
+            } else {
+              isMatch = false;
+            }
+            
           }
 
         }
