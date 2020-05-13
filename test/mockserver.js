@@ -521,6 +521,11 @@ describe('mockserver', function() {
         assert.equal(res.status, 200);
       });
 
+      it('should not handle request where params does not match', function() {
+        processRequest('/wildcard-params?biz=baz&axe=bar', 'GET');
+        assert.equal(res.status, 404);
+      });
+
       it('should not handle requests with extra params in the query string, if no slugs are configured', function() {
         processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'POST');
         assert.equal(res.status, 404);
