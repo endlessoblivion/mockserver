@@ -504,9 +504,9 @@ describe('mockserver', function() {
       });
 
       it('should handle a file with wildcards as query param values', function() {
-        processRequest('/wildcard-params?foo=bar&not-exact=baz&more=andmore', 'GET');
-
+        processRequest('/wildcard-params/extra/?foo=bar&not-exact=baz&more=andmore', 'GET');
         assert.equal(res.status, 200);
+        assert.equal(res.body, 'foo=bar&__=__');
       });
 
       it('should prefer exact matches over wildcard matches', function () {
@@ -514,18 +514,33 @@ describe('mockserver', function() {
 
         assert.equal(res.status, 200);
         assert.equal(res.body, 'exact match');
-      })
+      });
 
       it('should handle a request regardless of the order of the params in the query string', function() {
         processRequest('/wildcard-params?buz=baz&foo=bar', 'GET');
-
         assert.equal(res.status, 200);
       });
 
-      it('should not handle requests with extra params in the query string', function() {
-        processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'POST');
-
+      it('should not handle request where params does not match', function() {
+        processRequest('/wildcard-params?biz=baz&axe=bar', 'GET');
         assert.equal(res.status, 404);
+      });
+
+      it('should not handle requests with extra params in the query string, if no slugs are configured', function() {
+        processRequest('/wildcard-params?buz=baz&foo=bar&biz=bak', 'POST');
+        assert.equal(res.status, 404);
+      });
+
+      it('should handle extra params name and values if slug is configured', function() {
+        processRequest('/wildcard-params/extra/?foo=bar&myextra=data', 'GET');
+        assert.equal(res.body, 'foo=bar&__=__');
+        assert.equal(res.status, 200);
+      });
+
+      it('should handle extra params value if slug is configured', function() {
+        processRequest('/wildcard-params?foo=bar&buz=data', 'GET');
+        assert.equal(res.body, 'foo=bar&buz=__');
+        assert.equal(res.status, 200);
       });
 
       it('should default to GET.mock if no matching parameter file is found', function() {

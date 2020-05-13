@@ -332,30 +332,38 @@ function testForQuery(path, prefix, body, query, allowWildcards) {
         return prev;
       }
 
-      let isMatch = true;
       //get params from file
       const paramMap = queryStringToMap(query);
       const possibleFileParamMap = queryStringToMap(
         possibleFile.replace('.mock', '').split('--')[1]
       );
 
+      let isMatch = true;
       for (const key in paramMap) { //Match each parameter against value or wildacard
         if (!isMatch) {
-          continue;
+          break;
         }
-        if (isMatch = possibleFileParamMap[key] === paramMap[key])
+        if (possibleFileParamMap[key] === paramMap[key]) {
           //The parameter matched the value exactly
           continue;
-        else if (allowWildcards) {
+        } 
+        
+        if (allowWildcards) {
 
           if (key in possibleFileParamMap) {
             //The parameter was configured to accept any value
             isMatch = possibleFileParamMap[key] === '__';
           } else {
-            //The mock was configured to accept any parameter with any value
-            isMatch = possibleFileParamMap['__'] === '__'
-          }
+            if (possibleFileParamMap['__'] === '__') {
+              //The mock was configured to accept any parameter with any value
+              continue;
+            } else {
+              isMatch = false;
+            }
+          } 
 
+        } else {
+          isMatch = false;
         }
          
       }
