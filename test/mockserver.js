@@ -504,9 +504,9 @@ describe('mockserver', function() {
       });
 
       it('should handle a file with wildcards as query param values', function() {
-        processRequest('/wildcard-params?foo=bar&not-exact=baz&more=andmore', 'GET');
-
+        processRequest('/wildcard-params/extra/?foo=bar&not-exact=baz&more=andmore', 'GET');
         assert.equal(res.status, 200);
+        assert.equal(res.body, 'foo=bar&__=__');
       });
 
       it('should prefer exact matches over wildcard matches', function () {

@@ -345,7 +345,6 @@ function testForQuery(path, prefix, body, query, allowWildcards) {
         }
         if (possibleFileParamMap[key] === paramMap[key]) {
           //The parameter matched the value exactly
-          isMatch = true;
           continue;
         } else if (allowWildcards) {
 
@@ -359,9 +358,10 @@ function testForQuery(path, prefix, body, query, allowWildcards) {
             } else {
               isMatch = false;
             }
-            
-          }
+          } 
 
+        } else {
+          isMatch = false;
         }
          
       }
