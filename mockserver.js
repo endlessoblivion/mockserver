@@ -25,7 +25,7 @@ function parseStatus(header) {
  * Parses an HTTP header, splitting
  * by colon.
  */
-const parseHeader = function (header, context, request) {
+const parseHeader = function(header, context, request) {
   header = header.split(': ');
 
   return { key: normalizeHeader(header[0]), value: parseValue(header[1], context, request) };
@@ -247,6 +247,10 @@ function getDirectoriesRecursive(srcpath) {
  * GET--query=string&hello=hella.mock
  */
 function getBodyOrQueryString(body, query) {
+  if (body && query) {
+    return '_'+ body + '--' + query;
+  }
+
   if (query) {
     return '--' + query;
   }
@@ -283,27 +287,110 @@ function getBody(req, callback) {
 }
 
 function getMockedContent(path, prefix, body, query) {
-  const mockName = prefix + (getBodyOrQueryString(body, query) || '') + '.mock';
-  const mockFile = join(mockserver.directory, path, mockName);
-  let content;
+  // Check for an exact match
+  const exactName = prefix + (getBodyOrQueryString(body, query) || '') + '.mock';
+  let content = handleMatch(path, exactName, fs.existsSync);
 
-  try {
-    content = fs.readFileSync(mockFile, { encoding: 'utf8' });
-    if (mockserver.verbose) {
-      console.log(
-        'Reading from ' + mockFile.yellow + ' file: ' + 'Matched'.green
-      );
+  // Compare params without regard to order
+  if (!content && query) {
+    content = testForQuery(path, prefix, body, query, false);
+
+    // Compare params without regard to order and allow wildcards
+    if (!content) {
+      content = testForQuery(path, prefix, body, query, true);
     }
-  } catch (err) {
-    if (mockserver.verbose) {
-      console.log(
-        'Reading from ' + mockFile.yellow + ' file: ' + 'Not matched'.red
-      );
-    }
-    content = (body || query) && getMockedContent(path, prefix);
+  }
+
+  // fallback option (e.g. GET.mock). ignores body and query
+  if (!content) {
+    const fallbackName = prefix + '.mock';
+    content = handleMatch(path, fallbackName, fs.existsSync);
   }
 
   return content;
+}
+
+function testForQuery(path, prefix, body, query, allowWildcards) {
+  
+  if (!fs.existsSync(join(mockserver.directory, path))) {
+    return handleMatch(path, join(mockserver.directory, path), false);
+  }
+
+  // Find all files in the directory
+  return fs
+    .readdirSync(join(mockserver.directory, path))
+    .filter(possibleFile => {
+      if (body) {
+        return possibleFile.startsWith(prefix + '_' + body) && possibleFile.endsWith('.mock');
+      }
+
+      return possibleFile.startsWith(prefix) && possibleFile.endsWith('.mock');
+    })
+    .filter(possibleFile => possibleFile.match(/--[\s\S]*__/))
+    .reduce((prev, possibleFile) => {
+      if (prev) {
+        return prev;
+      }
+
+      let isMatch = true;
+      //get params from file
+      const paramMap = queryStringToMap(query);
+      const possibleFileParamMap = queryStringToMap(
+        possibleFile.replace('.mock', '').split('--')[1]
+      );
+
+      for (const key in paramMap) { //Match each parameter against value or wildacard
+        if (!isMatch) {
+          continue;
+        }
+        if (isMatch = possibleFileParamMap[key] === paramMap[key])
+          //The parameter matched the value exactly
+          continue;
+        else if (allowWildcards) {
+
+          if (key in possibleFileParamMap) {
+            //The parameter was configured to accept any value
+            isMatch = possibleFileParamMap[key] === '__';
+          } else {
+            //The mock was configured to accept any parameter with any value
+            isMatch = possibleFileParamMap['__'] === '__'
+          }
+
+        }
+         
+      }
+
+      return handleMatch(path, possibleFile, isMatch);
+    }, undefined);
+}
+
+function queryStringToMap(query) {
+  const result = {};
+  query.split('&').forEach(param => {
+    const [key, val] = param.split('=');
+    result[key] = val;
+  });
+  return result;
+}
+
+function handleMatch(path, fileName, isMatchOrTest) {
+  const mockFile = join(mockserver.directory, path, fileName);
+
+  let isMatch = isMatchOrTest;
+  if (typeof isMatchOrTest === 'function') {
+    isMatch = isMatchOrTest(mockFile);
+  }
+
+  if (isMatch) {
+    if (mockserver.verbose) {
+      console.log('Reading from ' + mockFile.yellow + ' file: ' + 'Matched'.green);
+    }
+    return fs.readFileSync(mockFile, { encoding: 'utf8' });
+  }
+
+  if (mockserver.verbose) {
+    console.log('Reading from ' + mockFile.yellow + ' file: ' + 'Not matched'.red);
+  }
 }
 
 function getContentFromPermutations(path, method, body, query, permutations) {
