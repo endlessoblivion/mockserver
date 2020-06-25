@@ -1,5 +1,7 @@
 # mockserver
 
+![Node.js CI](https://github.com/Blikingor/mockserver/workflows/Node.js%20CI/badge.svg?branch=master)
+
 **mockserver** is a library that will help you mocking your APIs
 in **a matter of seconds**: you simply organize your mocked
 HTTP responses in a bunch of mock files and it will serve them
