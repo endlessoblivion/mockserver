@@ -1,14 +1,17 @@
+/*jslint node: true */
+/*jslint esversion: 6 */
+"use strict";
+
 const MockReq = require('mock-req');
 const assert = require('assert');
 const mockserver = require('./../mockserver');
 const path = require('path');
-const Monad = require('../monad');
 
 let res;
 let req;
 const mocksDirectory = path.join('.', 'test', 'mocks');
 
-const verbose = process.env.DEBUG === 'true' || false;
+var verbose = false; //process.env.DEBUG === 'true' || true;
 
 /**
  * Processes request
@@ -80,13 +83,12 @@ describe('mockserver', function() {
   describe('mockserver()', function() {
     it('should return a valid response', function(done) {
       
-      processRequest('/test', 'GET', function(res) {
+      processRequest('/response-default', 'GET', function(res) {
         assert.equal(res.body, 'Welcome!');
         assert.equal(res.status, 200);
         assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
         done();
       });
-
 
     });
 
@@ -99,13 +101,12 @@ describe('mockserver', function() {
     });
 
     it('should be able to handle trailing slashes without changing the name of the mockfile', function(done) {
-     processRequest('/test/', 'GET', function(res) {
+     processRequest('/response-default/', 'GET', function(res) {
         assert.equal(res.status, 200);
         assert.equal(res.body, 'Welcome!');
         assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
         done();
       });
-
     });
 
     it('should be able to handle multiple headers', function(done) {
@@ -117,8 +118,6 @@ describe('mockserver', function() {
         );  
         done();
       });
-
-      
     });
 
     it('should combine the identical headers names', function(done) {
@@ -126,9 +125,7 @@ describe('mockserver', function() {
         assert.equal(res.headers['Set-Cookie'].length, 3);        
         done();
       });
-    });
-      
-  
+    });       
 
     it('should be able to handle status codes different than 200', function(done) {
       processRequest('/return-204', 'GET',function(res) {
@@ -163,14 +160,14 @@ describe('mockserver', function() {
 
     it('should be able to map multi-level urls', function(done) {
     
-      processRequest('/test1/test2', 'GET', function(res){
+      processRequest('/multi-level-url/multi-level-url-2', 'GET', function(res){
         assert.equal(res.body, 'multi-level url');  
         done();
       });
     });
 
     it('should be able to handle GET parameters', function(done) {
-      processRequest('/test?a=b', 'GET',  function(res) {
+      processRequest('/query-params?a=b', 'GET',  function(res) {
         assert.equal(res.status, 200);        
         done();
       });
@@ -178,12 +175,16 @@ describe('mockserver', function() {
     });
 
     it('should default to GET.mock if no matching parameter file is found', function(done) {
-      processRequest('/test?a=c', 'GET', function(res) {
+      processRequest('/query-params?a=c', 'GET', function(res) {
         assert.equal(res.status, 200);  
         done();
       });
-
     });
+
+
+
+
+
 
     it('should be able track custom headers, not authorized', function(done) {
       mockserver.headers = ['authorization'];
@@ -369,11 +370,52 @@ describe('mockserver', function() {
       assert.equal(res.body, JSON.stringify({ foo: 'bar' }, null, 4));
     });
 
-    it('should be able to handle eval', function() {
-      processRequest('/eval', 'GET');
+    it('should be able to include POST json body in separate file', function(done) {
+      var jsonBody = {user: {username: 'theUser', password: '123456'}};
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
 
-      assert.equal(res.status, 200);
-      assert.deepEqual(JSON.parse(res.body), { foo: 'bar' });
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.deepEqual(JSON.parse(res.body), {token: 'longJWT'});
+        assert.equal(res.status, 200);
+        done();
+      });
+    });
+
+    it('should default to POST.mock if json body not found in any files', function(done) {
+      var jsonBody = {user: {username: 'notFoundUser', password: '123456'}};
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
+
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.deepEqual(JSON.parse(res.body), {error: 'User not found'});
+        assert.equal(res.status, 404);
+        done();
+      });
+    });
+
+    it('Should return 404 when no default .mock files are found', function() {
+        mockserver.headers = ['authorization'];
+        req.headers['authorization'] = 12;
+        processRequest('/return-200?a=c', 'GET');
     });
 
     it('should be able to handle imports with content around import', function() {
@@ -432,6 +474,7 @@ describe('mockserver', function() {
       assert.ok(Date.parse(res.headers['X-Subject-Token']));
       assert.equal(res.body, 'dynamic headers\n');
     });
+  });
 
     describe('wildcard directories', function() {
       it('wildcard matches directories named __ with numeric slug', function() {
@@ -492,7 +535,7 @@ describe('mockserver', function() {
 
     describe('query string parameters', function() {
       it('should be able to handle GET parameters', function() {
-        processRequest('/test?a=b', 'GET');
+        processRequest('/query-params?a=b', 'GET');
 
         assert.equal(res.status, 200);
       });
@@ -544,7 +587,7 @@ describe('mockserver', function() {
       });
 
       it('should default to GET.mock if no matching parameter file is found', function() {
-        processRequest('/test?a=c', 'GET');
+        processRequest('/query-params?a=c', 'GET');
 
         assert.equal(res.status, 200);
       });
@@ -590,6 +633,7 @@ describe('mockserver', function() {
       });
     });
 
+    
     describe('.getResponseDelay', function() {
       it('should return a value greater than zero when valid', function() {
         const ownValueHeaders = [
@@ -651,38 +695,10 @@ describe('mockserver', function() {
               assert.equal(res.status, '200');
               done();
           });
-      });
-    })
+
+        });
+    });
+
   });
-});
 
-describe('Monad methods', function() {
-    let m;
-    function fn(val) {
-        return {
-            ...val,
-            b: 2
-        };
-    }
-    const testData = { a: 1 };
-    const expectData = { a: 1, b: 2 };
-    beforeEach(function() {
-        m = Monad.of(testData);
-    });
 
-    it('Monad have static method `of`', function() {
-        assert.equal(typeof Monad.of, 'function');
-    });
-    it('Monad method `of` should return Object type Monad', function() {
-        assert.equal(m instanceof Monad, true);
-    });
-    it('Monad method `map` should recive value and return Object type Monad', function() {
-        assert.equal(m.map(fn) instanceof Monad, true);
-    });
-    it('Monad method `join` should return value', function () {
-        assert.strictEqual(m.join(), testData);
-    });
-    it('Monad method `chain` should return value', function () {
-        assert.deepEqual(m.chain(fn), expectData);
-    });
-});
