@@ -244,7 +244,7 @@ if there's no `hello/GET_Authorization=12345--a=b.mock`, we'll default to `hello
 
 To support Windows and tidier file naming, the expected body of the request can be saved in a separate `.json` file. If the request contains a body in json format, mockserver will look for that body in json files in the same `$REQUEST-PATH` directory.
 
-For example, if a POST body is `{"json": "yesPlease"}`, and a file in the path called `payload.json` has the same content (order is important, but spacing between keys/values is not), mockserver will look for a file called `POST@payload.json.mock`.
+For example, if a POST body is `{"json": "yesPlease"}`, and a file in the path called `payload.json` has the same content (order is important, but spacing between keys/values is not), mockserver will look for a file called `POST@payload.mock`.
 
 The general naming convention is:
 
