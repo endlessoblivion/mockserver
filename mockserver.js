@@ -299,7 +299,14 @@ function getMatchingJsonFile(files, fullPath, jsonBody) {
 
       try {
         if (JSON.stringify(JSON.parse(jsonBody)) === JSON.stringify(JSON.parse(data))) {
+          if (mockserver.verbose) {
+            console.log('Payload in ' + join(fullPath, file).yellow + " file: " + 'Matched'.green);
+          }
           return file;
+        } else {
+          if (mockserver.verbose) {
+            console.log('Payload in ' + join(fullPath, file).yellow + " file: " +  'Not matched'.red);
+          }
         }
       } catch (err) {
         if (mockserver.verbose) {
@@ -360,8 +367,8 @@ function testForBody(path, prefix, body, query, allowWildcards) {
         var fileWithoutExtension = matchingJsonFile.replace('.json', '');
         var mockNameFromJson = prefix + '@' + fileWithoutExtension + '.mock';
         
-        return handleMatch(path, mockNameFromJson, true);
-      }
+        return handleMatch(path, mockNameFromJson, fs.existsSync);
+      } 
     }
   }
   

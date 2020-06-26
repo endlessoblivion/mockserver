@@ -11,7 +11,7 @@ let res;
 let req;
 const mocksDirectory = path.join('.', 'test', 'mocks');
 
-var verbose = false; //process.env.DEBUG === 'true' || true;
+var verbose = true; //process.env.DEBUG === 'true' || true;
 
 /**
  * Processes request
@@ -408,6 +408,27 @@ describe('mockserver', function() {
       req.on('end', function() {
         assert.equal(res.body, "spacetest");
         assert.equal(res.status, 200);
+        done();
+      });
+    });
+
+    it('should default to POST.mock if payload file does not match mock', function(done) {
+      var jsonBody = {user: {username: 'notTheUser', password: '123456'}};
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
+
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.deepEqual(JSON.parse(res.body), {error: 'User not found'});
+        assert.equal(res.status, 404);
         done();
       });
     });
