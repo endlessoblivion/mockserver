@@ -298,7 +298,7 @@ function getMatchingJsonFile(files, fullPath, jsonBody) {
       var data = fs.readFileSync(join(fullPath, file), { encoding: 'utf8' });
 
       try {
-        if (jsonBody === JSON.stringify(JSON.parse(data))) {
+        if (JSON.stringify(JSON.parse(jsonBody)) === JSON.stringify(JSON.parse(data))) {
           return file;
         }
       } catch (err) {

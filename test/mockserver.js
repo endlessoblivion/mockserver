@@ -391,6 +391,27 @@ describe('mockserver', function() {
       });
     });
 
+    it('should normalize JSON before comparing with separate file', function(done) {
+      var jsonBody = "{\"json\": \"yesPlease\"}"; //Extra whitespace in request
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
+
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.equal(res.body, "spacetest");
+        assert.equal(res.status, 200);
+        done();
+      });
+    });
+
     it('should default to POST.mock if json body not found in any files', function(done) {
       var jsonBody = {user: {username: 'notFoundUser', password: '123456'}};
       var req = new MockReq({
