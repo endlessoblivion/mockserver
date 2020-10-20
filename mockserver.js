@@ -302,17 +302,13 @@ function applyMask(mockBody, requestBody) {
   
   var leaves = mock.reduce(function (acc, x) {
     if (this.isLeaf && x === '__') {
-      console.log("FOUND BODY WILDCARD " + this.path + " " + x);
       if (request.has(this.path)) {
-        console.log("SETTING!!");
         request.set(this.path, '__');
       }
 
     }
     return acc;
   }, []);
-
-  console.log("_________" + JSON.stringify(requestBody));
   return requestBody;
 }
 
