@@ -1,0 +1,9 @@
+{
+  "user": {
+    "username": "theUser",
+    "password": "1234567",
+    "nested" : {
+      "item" : "__"
+    }
+  }
+}

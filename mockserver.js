@@ -12,6 +12,8 @@ const Monad = require('./monad');
 const importHandler = require('./handlers/importHandler');
 const headerHandler = require('./handlers/headerHandler');
 const evalHandler = require('./handlers/evalHandler');
+const traverse = require('traverse');
+
 /**
  * Returns the status code out of the
  * first line of an HTTP response
@@ -292,13 +294,42 @@ function isJsonString(str) {
   return true;
 }
 
+function applyMask(mockBody, requestBody) {
+
+  var mock = traverse(mockBody);
+  var request = traverse(requestBody);
+
+  
+  var leaves = mock.reduce(function (acc, x) {
+    if (this.isLeaf && x === '__') {
+      console.log("FOUND BODY WILDCARD " + this.path + " " + x);
+      if (request.has(this.path)) {
+        console.log("SETTING!!");
+        request.set(this.path, '__');
+      }
+
+    }
+    return acc;
+  }, []);
+
+  console.log("_________" + JSON.stringify(requestBody));
+  return requestBody;
+}
+
+
 function getMatchingJsonFile(files, fullPath, jsonBody) {
   for (var file of files) {
     if (file.endsWith('.json')) {
       var data = fs.readFileSync(join(fullPath, file), { encoding: 'utf8' });
 
+      var requestBodyObject = JSON.parse(jsonBody);
+      var mockObject = JSON.parse(data);
+
+      requestBodyObject = applyMask(mockObject, requestBodyObject);
+
+
       try {
-        if (JSON.stringify(JSON.parse(jsonBody)) === JSON.stringify(JSON.parse(data))) {
+        if (JSON.stringify(requestBodyObject) === JSON.stringify(mockObject)) {
           if (mockserver.verbose) {
             console.log('Payload in ' + join(fullPath, file).yellow + " file: " + 'Matched'.green);
           }

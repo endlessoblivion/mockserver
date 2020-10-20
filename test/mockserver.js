@@ -391,6 +391,50 @@ describe('mockserver', function() {
       });
     });
 
+
+    it('should be able to handle wildcards in separate file mock', function(done) {
+      var jsonBody = {username: 'theUser', password: '123456'};
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json-wildcard',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
+
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.equal(res.body, "WildcardMatch");
+        assert.equal(res.status, 200);
+        done();
+      })
+    });
+
+    it('should be able to handle nested wildcards in separate file mock', function(done) {
+      var jsonBody = {user: {username: 'theUser', password: '1234567', nested: {item: "MyDisregardedValue!"}}};
+      var req = new MockReq({
+        method: 'POST',
+        url: '/request-json-wildcard',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      req.write(jsonBody);
+      req.end();
+
+      mockserver(mocksDirectory, verbose)(req, res);
+
+      req.on('end', function() {
+        assert.equal(res.body, "NestedWildcardMatch");
+        assert.equal(res.status, 200);
+        done();
+      })
+    });
+
+
     it('should normalize JSON before comparing with separate file', function(done) {
       var jsonBody = "{\"json\": \"yesPlease\"}"; //Extra whitespace in request
       var req = new MockReq({
