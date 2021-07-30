@@ -84,7 +84,7 @@ const parse = function(content, file, request) {
   content = content.split(/\r?\n/);
   const status = Monad.of(content[0])
     .map((value) => importHandler(value, context, request))
-    .map((value) => evalHandler(value, context, request))
+    .map((value) => evalHandler(value, request))
     .map(parseStatus)
     .join();
 
@@ -107,7 +107,7 @@ const parse = function(content, file, request) {
 
   body = Monad.of(bodyContent.join('\n'))
     .map((value) => importHandler(value, context, request))
-    .map((value) => evalHandler(value, context, request))
+    .map((value) => evalHandler(value, request))
     .join();
 
   return { status: status, headers: headers, body: body };
