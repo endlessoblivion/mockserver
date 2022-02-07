@@ -20,11 +20,11 @@ const traverse = require('traverse');
  * (ie. HTTP/1.1 200 Ok)
  */
 function parseStatus(header) {
-  const regex = /(?<=HTTP\/\d.\d\s{1,1})(\d{3,3})(?=[a-z0-9\s]+)/gi;
+  const regex = /(?:HTTP\/\d+\.\d+\s)(\d{3})(?:\s(.+))?/i;
   if (!regex.test(header)) throw new Error('Response code should be valid string');
 
-  const res = header.match(regex);
-  return res.join('');
+  const [, code, reason] = header.match(regex);
+  return { code, reason };
 }
 
 /**
@@ -560,15 +560,15 @@ const mockserver = {
 
       if (matched.content) {
         const mock = parse(matched.content, join(mockserver.directory, path, matched.prefix), req);
+        const reply = () => {
+          res.writeHead(...[mock.status.code, mock.status.reason, mock.headers].filter(_ => _));
+          return res.end(mock.body);
+        };
         const delay = getResponseDelay(mock.headers);
         if (delay > 0) {
-          setTimeout(function() {
-            res.writeHead(mock.status, mock.headers);
-            res.end(mock.body);
-          }, delay);
+          setTimeout(() => { reply(); }, delay);
         } else {
-          res.writeHead(mock.status, mock.headers);
-          return res.end(mock.body);
+          return reply();
         }
       } else {
         res.writeHead(404);

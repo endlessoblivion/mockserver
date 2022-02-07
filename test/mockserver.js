@@ -55,10 +55,14 @@ describe('mockserver', function() {
     res = {
       headers: null,
       status: null,
+      reason: null,
       body: null,
-      writeHead: function(status, headers) {
+      writeHead: function(status, reason, headers) {
         this.status = status;
         this.headers = headers;
+        typeof reason === 'string'
+          ? this.reason = reason
+          : this.headers = reason;
       },
       end: function(body) {
         this.body = body;
@@ -785,6 +789,24 @@ describe('mockserver', function() {
         });
     });
 
+  describe('Response reason', function() {
+    it('should be a default one, if not given', function(done) {
+      processRequest('/response-reason', 'GET', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(res.reason, null);
+        assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
+        assert.equal(res.body, 'Welcome!');
+        done();
+      });
+    });
+    it('should be the mocked one, if given', function(done) {
+      processRequest('/response-reason', 'POST', function(res) {
+        assert.equal(res.status, 200);
+        assert.equal(res.reason, ' Oook! ');
+        assert.equal(JSON.stringify(res.headers), '{"Content-Type":"text"}');
+        assert.equal(res.body, 'Welcome!');
+        done();
+      });
+    });
   });
-
-
+});
