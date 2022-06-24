@@ -83,7 +83,7 @@ const parse = function(content, file, request) {
   const bodyContent = [];
   content = content.split(/\r?\n/);
   const status = Monad.of(content[0])
-    .map((value) => importHandler(value, context, request))
+    .map((value) => importHandler(value, context, request, { isStatusLine: true }))
     .map((value) => evalHandler(value, request))
     .map(parseStatus)
     .join();
