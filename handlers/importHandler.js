@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-module.exports = function importHandler(value, context, request, { isStatusLine } = {}) {
+module.exports = function importHandler(value, context, request, { isHeaders } = {}) {
     if (!/^#import/m.test(value)) return value;
 
     return value
@@ -9,7 +9,7 @@ module.exports = function importHandler(value, context, request, { isStatusLine 
           const importThisFile = file.replace(/['"]/g, '');
           const content = fs.readFileSync(path.join(context, importThisFile));
           if (importThisFile.endsWith('.js')) {
-              return (isStatusLine ? _ => _ : JSON.stringify)(eval(content.toString()));
+              return (isHeaders ? _ => _ : JSON.stringify)(eval(content.toString()));
           } else {
               return content;
           }

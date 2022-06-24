@@ -63,12 +63,10 @@ const prepareWatchedHeaders = function() {
  */
 const addHeader = function(headers, line) {
   const { key, value } = parseHeader(line);
-
-  if (headers[key]) {
-    headers[key] = [...(Array.isArray(headers[key]) ? headers[key] : [headers[key]]), value];
-  } else {
-    headers[key] = value;
-  }
+  headers[key] = headers[key]
+    ? [...(Array.isArray(headers[key]) ? headers[key] : [headers[key]]), value]
+    : value;
+  return headers;
 };
 
 /**
@@ -78,39 +76,27 @@ const addHeader = function(headers, line) {
  */
 const parse = function(content, file, request) {
   const context = path.parse(file).dir + '/';
-  const headers = {};
-  let body;
-  const bodyContent = [];
-  content = content.split(/\r?\n/);
-  const status = Monad.of(content[0])
-    .map((value) => importHandler(value, context, request, { isStatusLine: true }))
+
+  const [headersContent, bodyContent] = content
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\n(.*)/s, 2);
+
+  const [statusLine, headersLines] = Monad.of(headersContent)
+    .map((value) => importHandler(value, context, request, { isHeaders: true }))
     .map((value) => evalHandler(value, request))
-    .map(parseStatus)
+    .map((value) => value.split('\n'))
+    .map((value) => [value[0], value.slice(1)])
     .join();
 
-  let headerEnd = false;
-  delete content[0];
+  const status = parseStatus(statusLine);
+  const headers = headersLines.reduce(addHeader, {});
 
-  content.forEach(function(line) {
-    switch (true) {
-      case headerEnd:
-        bodyContent.push(line);
-        break;
-      case line === '' || line === '\r':
-        headerEnd = true;
-        break;
-      default:
-        addHeader(headers, line);
-        break;
-    }
-  });
-
-  body = Monad.of(bodyContent.join('\n'))
+  const body = Monad.of(bodyContent)
     .map((value) => importHandler(value, context, request))
     .map((value) => evalHandler(value, request))
     .join();
 
-  return { status: status, headers: headers, body: body };
+  return { status, headers, body };
 };
 
 function removeBlanks(array) {
