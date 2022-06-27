@@ -1,7 +1,7 @@
 module.exports = function evalHandler(value, request) {
-  if (!/^#eval/m.test(value)) return value;
+  if (!/#eval/m.test(value)) return value;
   return value
-    .replace(/^#eval ([^;]*);/mg, function (statement, val) {
+    .replace(/#eval ([^;]*);/mg, function (statement, val) {
     return eval(val);
   })
     .replace(/\r\n?/g, '\n');
