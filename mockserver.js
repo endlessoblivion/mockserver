@@ -84,7 +84,7 @@ const parse = function(content, file, request) {
   const [statusLine, headersLines] = Monad.of(headersContent)
     .map((value) => importHandler(value, context, request, { isHeaders: true }))
     .map((value) => evalHandler(value, request))
-    .map((value) => value.split('\n'))
+    .map((value) => value.trim().split('\n'))
     .map((value) => [value[0], value.slice(1)])
     .join();
 
